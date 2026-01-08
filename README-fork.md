@@ -25,7 +25,7 @@ git
 ```
 
 
-Then we can run the following bash command from a the working directory `alphabet` inside the `comp560-jmac` repo:
+Then we can run the following bash command from the working directory `alphabet` inside the `comp560-jmac` repo:
 ```
 NANOGPT_CONFIG=../../comp560-nanoGPT/configurator.py  python -u ../../comp560-nanoGPT/train.py config/basic.py
 ```
