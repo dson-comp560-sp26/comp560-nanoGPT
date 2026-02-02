@@ -16,6 +16,7 @@ num_samples = 10 # number of samples to draw
 max_new_tokens = 500 # number of tokens generated in each sample
 temperature = 0.8 # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
 top_k = 200 # retain only the top_k most likely tokens, clamp others to have 0 probability
+stop_token = None # token to stop generation at, e.g. "\n"
 seed = 1337
 device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
 dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
@@ -81,10 +82,18 @@ if start.startswith('FILE:'):
 start_ids = encode(start)
 x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
 
+# determine the stop token id
+stop_token_id = None
+if stop_token is not None:
+    # encode returns a list, we take the first token id
+    stop_ids = encode(stop_token) 
+    if len(stop_ids) > 0:
+        stop_token_id = stop_ids[0]
+
 # run generation
 with torch.no_grad():
     with ctx:
         for k in range(num_samples):
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
+            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k, stop_token=stop_token_id)
             print(decode(y[0].tolist()))
             print('---------------')
