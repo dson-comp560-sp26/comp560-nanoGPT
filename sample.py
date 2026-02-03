@@ -89,17 +89,12 @@ start_ids = encode(start)
 x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
 
 # determine the stop token id
-stop_token_id = None
-if stop_token is not None:
-    # encode returns a list, we take the first token id
-    stop_ids = encode(stop_token) 
-    if len(stop_ids) > 0:
-        stop_token_id = stop_ids[0]
+stop_token_id = comp560ext.prepare_stop_token(stop_token, encode)
 
 # run generation
 with torch.no_grad():
     with ctx:
         for k in range(num_samples):
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k, stop_token=stop_token_id)
+            y = comp560ext.generate(model, x, max_new_tokens, temperature=temperature, top_k=top_k, stop_token=stop_token_id)
             print(decode(y[0].tolist()))
             print('---------------')
