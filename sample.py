@@ -23,7 +23,9 @@ dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported
 compile = False # use PyTorch 2.0 to compile the model to be faster
 # config_file = os.environ.get("NANOGPT_CONFIG", "configurator.py")
 # -----------------------------------------------------------------------------
+############# COMP560 config variables ##################
 stop_token = None
+#########################################################
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config_file = comp560ext.get_config_file()
 exec(open(config_file).read()) # overrides from command line or config file
