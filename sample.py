@@ -23,6 +23,7 @@ dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported
 compile = False # use PyTorch 2.0 to compile the model to be faster
 # config_file = os.environ.get("NANOGPT_CONFIG", "configurator.py")
 # -----------------------------------------------------------------------------
+stop_token = None
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config_file = comp560ext.get_config_file()
 exec(open(config_file).read()) # overrides from command line or config file
@@ -88,7 +89,7 @@ start_ids = encode(start)
 x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
 
 # determine the stop token id
-stop_token_id = comp560ext.prepare_stop_token(globals(), encode)
+stop_token_id = comp560ext.prepare_stop_token(stop_token, encode)
 
 # run generation
 with torch.no_grad():

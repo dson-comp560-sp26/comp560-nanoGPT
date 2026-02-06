@@ -21,13 +21,11 @@ def print_config():
 def calc_flops_achieved(flops_per_iter, dt):
     return flops_per_iter * (1.0/dt) if dt > 0 else 0.0  # per second
 
-def prepare_stop_token(config_dict, encode):
+def prepare_stop_token(stop_token, encode):
     """
     Encodes the stop_token string into a token ID using the provided encode function.
-    config_dict: A dictionary (e.g., globals()) to look up 'stop_token'.
     Returns the first token ID or None.
     """
-    stop_token = config_dict.get('stop_token', None)
     if stop_token is not None:
         stop_ids = encode(stop_token)
         if len(stop_ids) > 0:
