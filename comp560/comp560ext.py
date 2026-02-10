@@ -26,7 +26,7 @@ def prepare_stop_token(stop_token, encode):
     Encodes the stop_token string into a token ID using the provided encode function.
     Returns the first token ID or None.
     """
-    if stop_token is not None:
+    if stop_token and stop_token != "":
         stop_ids = encode(stop_token)
         if len(stop_ids) > 0:
             return stop_ids[0]

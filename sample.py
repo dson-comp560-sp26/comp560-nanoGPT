@@ -24,7 +24,7 @@ compile = False # use PyTorch 2.0 to compile the model to be faster
 # config_file = os.environ.get("NANOGPT_CONFIG", "configurator.py")
 # -----------------------------------------------------------------------------
 ############# COMP560 config variables ##################
-stop_token = None
+stop_token = ""
 #########################################################
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 config_file = comp560ext.get_config_file()
