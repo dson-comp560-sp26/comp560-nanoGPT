@@ -6,8 +6,48 @@ and extensions without modifying core scripts like train.py, sample.py.
 """
 
 import os
+import sys
+from ast import literal_eval
+import torch
+from torch.nn import functional as F
 
 config = {} # Should be overwritten by train.py or sample.py
+
+def configure(globals_dict):
+    """
+    Parses command line arguments and updates the globals dictionary.
+    Replaces the functionality of configurator.py with improved parsing logic.
+    """
+    for arg in sys.argv[1:]:
+        if '=' not in arg:
+            # assume it's the name of a config file
+            assert not arg.startswith('--')
+            config_file = arg
+            print(f"Overriding config with {config_file}:")
+            with open(config_file) as f:
+                print(f.read())
+            exec(open(config_file).read(), globals_dict)
+        else:
+            # assume it's a --key=value argument
+            assert arg.startswith('--')
+            # FIX: Use maxsplit=1 to handle values containing '=' (e.g. --start="1+1=")
+            key, val = arg.split('=', 1)
+            key = key[2:]
+            if key in globals_dict:
+                try:
+                    # attempt to eval it it (e.g. if bool, number, or etc)
+                    attempt = literal_eval(val)
+                except (SyntaxError, ValueError):
+                    # if that goes wrong, just use the string
+                    attempt = val
+                # ensure the types match ok
+                assert type(attempt) == type(globals_dict[key])
+                # cross fingers
+                print(f"Overriding: {key} = {attempt}")
+                globals_dict[key] = attempt
+            else:
+                raise ValueError(f"Unknown config key: {key}")
+
 
 def get_config_file():
     return os.environ.get("NANOGPT_CONFIG", "configurator.py")
@@ -18,4 +58,49 @@ def print_config():
 
 def calc_flops_achieved(flops_per_iter, dt):
     return flops_per_iter * (1.0/dt) if dt > 0 else 0.0  # per second
+
+def prepare_stop_token(stop_token, encode):
+    """
+    Encodes the stop_token string into a token ID using the provided encode function.
+    Returns the first token ID or None.
+    """
+    if stop_token and stop_token != "":
+        stop_ids = encode(stop_token)
+        if len(stop_ids) > 0:
+            return stop_ids[0]
+    return None
+
+@torch.no_grad()
+def generate(model, idx, max_new_tokens, temperature=1.0, top_k=None, stop_token=None):
+    """
+    Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
+    the sequence max_new_tokens times, feeding the predictions back into the model each time.
+    Most likely you'll want to make sure to be in model.eval() mode of operation for this.
+    
+    Args:
+        stop_token (int, optional): If provided, generation stops when this token is generated.
+    """
+    for _ in range(max_new_tokens):
+        # if the sequence context is growing too long we must crop it at block_size
+        idx_cond = idx if idx.size(1) <= model.config.block_size else idx[:, -model.config.block_size:]
+        # forward the model to get the logits for the index in the sequence
+        logits, _ = model(idx_cond)
+        # pluck the logits at the final step and scale by desired temperature
+        logits = logits[:, -1, :] / temperature
+        # optionally crop the logits to only the top k options
+        if top_k is not None:
+            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+            logits[logits < v[:, [-1]]] = -float('Inf')
+        # apply softmax to convert logits to (normalized) probabilities
+        probs = F.softmax(logits, dim=-1)
+        # sample from the distribution
+        idx_next = torch.multinomial(probs, num_samples=1)
+        # append sampled index to the running sequence and continue
+        idx = torch.cat((idx, idx_next), dim=1)
+        
+        # stop response when stop_token is generated
+        if stop_token is not None and idx_next.item() == stop_token:
+            break
+
+    return idx
 

@@ -23,9 +23,11 @@ dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported
 compile = False # use PyTorch 2.0 to compile the model to be faster
 # config_file = os.environ.get("NANOGPT_CONFIG", "configurator.py")
 # -----------------------------------------------------------------------------
+############# COMP560 config variables ##################
+stop_token = ""
+#########################################################
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
-config_file = comp560ext.get_config_file()
-exec(open(config_file).read()) # overrides from command line or config file
+comp560ext.configure(globals())
 config = {k: globals()[k] for k in config_keys} # will be useful for logging
 comp560ext.config = config
 # -----------------------------------------------------------------------------
@@ -87,10 +89,13 @@ if start.startswith('FILE:'):
 start_ids = encode(start)
 x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
 
+# determine the stop token id
+stop_token_id = comp560ext.prepare_stop_token(stop_token, encode)
+
 # run generation
 with torch.no_grad():
     with ctx:
         for k in range(num_samples):
-            y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
+            y = comp560ext.generate(model, x, max_new_tokens, temperature=temperature, top_k=top_k, stop_token=stop_token_id)
             print(decode(y[0].tolist()))
             print('---------------')
