@@ -41,8 +41,7 @@ def configure(globals_dict):
                     # if that goes wrong, just use the string
                     attempt = val
                 # ensure the types match ok
-                if globals_dict[key] is not None:
-                    assert type(attempt) == type(globals_dict[key])
+                assert type(attempt) == type(globals_dict[key])
                 # cross fingers
                 print(f"Overriding: {key} = {attempt}")
                 globals_dict[key] = attempt
